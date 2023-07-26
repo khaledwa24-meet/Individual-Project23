@@ -18,7 +18,6 @@ auth = firebase.auth()
 db = firebase.database()
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.config['SECRET_KEY'] = 'super-secret-key'
-
 #Code goes below here
 @app.route('/', methods = ['GET', 'POST'])
 def signup():
@@ -26,14 +25,16 @@ def signup():
         name = request.form['name']
         email = request.form['email']
         password = request.form['password']
+        preference = request.form['preference']
         try:
             login_session['user'] = auth.create_user_with_email_and_password(email, password)
             uid = login_session['user']['localId']
-            user = {"email" : email, 'password': password, "name" : name}
+            user = {"email" : email, 'password': password, "name" : name, "preference" : preference}
             db.child("Users").child(uid).set(user)
             return redirect(url_for("choices"))
         except:
             error = "oppsie smol mistake try agean"
+            print(error)
             return render_template("signup.html")
     else:
         return render_template('signup.html')
@@ -57,17 +58,29 @@ def choices():
     if request.method == 'POST':
         answer = request.form['ans']
         try:
+            uid = login_session['user']['localId']
+            preference = db.child('Users').child(uid).get().val()
+            print(preference)
             if answer == 'yes':
-                return redirect(url_for("cats"))
-            elif answer == 'no':
+                if preference['preference']== 'thin':
+                    return redirect(url_for('thin'))
+                elif preference['preference']== 'fat':
+                    return redirect(url_for('fat'))
+                elif preference['preference']== 'old':
+                    return redirect(url_for('old'))
+                elif preference['preference']== 'young':
+                    return redirect(url_for('young'))
+            if answer == 'no':
                 return redirect(url_for("banned"))
         except:
             error = 'oppsie smol mistake'
+            print(error)
     return render_template('choices.html')
         
 @app.route('/cats', methods = ['GET', 'POST'])
 def cats():
-    return render_template("cats.html")
+    if request.method == 'POST':
+        return render_template("cats.html")
 
 @app.route('/banned', methods = ['GET', 'POST'])
 def banned():
@@ -88,6 +101,9 @@ def old():
 @app.route('/young', methods = ['GET', 'POST'])
 def young():
     return render_template("young.html")
+
+
+
 #Code goes above here
 
 if __name__ == '__main__':
